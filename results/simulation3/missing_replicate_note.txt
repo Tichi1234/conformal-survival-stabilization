@@ -1,0 +1,9 @@
+Simulation 3 external benchmark completed with 1,599 successful scenario-replicates per method.
+The missing scenario-replicate is:
+setting = C
+mech = C2
+n = 600
+cens = 0.6
+rep = 28
+
+Coverage values in the retained results are finite. Weight-diagnostic columns contain NA values for methods that do not use IPCW weights.

@@ -1,0 +1,98 @@
+GBSG real-data application completed at:
+[1] "2026-07-01 08:07:11 CST"
+
+Data summary:
+    n events censored event_fraction censoring_fraction median_followup
+1 686    299      387      0.4358601          0.5641399         2.96783
+  time_scale
+1      years
+
+Controls:
+$R
+[1] 100
+
+$alpha
+[1] 0.1
+
+$target_coverage
+[1] 0.9
+
+$tau_grid
+ [1] 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.11 0.12 0.13 0.14 0.15
+[16] 0.16 0.17 0.18 0.19 0.20 0.21 0.22 0.23 0.24 0.25 0.26 0.27 0.28 0.29 0.30
+[31] 0.31 0.32 0.33 0.34 0.35 0.36 0.37 0.38 0.39 0.40 0.41 0.42 0.43 0.44 0.45
+[46] 0.46 0.47 0.48 0.49
+
+$train_prop
+[1] 0.5
+
+$cal_prop
+[1] 0.25
+
+$test_prop
+[1] 0.25
+
+$clip_rule
+[1] "q90"
+
+$time_scale
+[1] "years"
+
+$methods
+[1] "Naive-Y"    "CC"         "HT-IPCW"    "H-IPCW"     "Stab-IPCW" 
+[6] "Clip-IPCW"  "H-AIPCW"    "Clip-AIPCW"
+
+
+Summary:
+# A tibble: 8 × 17
+  method         R mean_cov mcse_cov med_cov pac_success mean_short mean_abscal
+  <fct>      <int>    <dbl>    <dbl>   <dbl>       <dbl>      <dbl>       <dbl>
+1 Naive-Y      100    0.943  0.00315   0.943        0.92    0.00201      0.0466
+2 CC           100    0.937  0.00314   0.941        0.86    0.00288      0.0428
+3 HT-IPCW      100    0.963  0.0125    1            0.9     0.0248       0.112 
+4 H-IPCW       100    0.901  0.00535   0.910        0.59    0.0196       0.0399
+5 Stab-IPCW    100    0.936  0.00318   0.941        0.85    0.00289      0.0422
+6 Clip-IPCW    100    0.924  0.00391   0.928        0.81    0.00678      0.0378
+7 H-AIPCW      100    0.970  0.00415   0.993        0.91    0.00139      0.0724
+8 Clip-AIPCW   100    0.937  0.00327   0.939        0.87    0.00299      0.0433
+# ℹ 9 more variables: med_lpb <dbl>, mean_lpb <dbl>, worst_slice <dbl>,
+#   sd_tau <dbl>, sd_cov <dbl>, mean_maxwt <dbl>, mean_ess <dbl>,
+#   mean_clipfrac <dbl>, mean_time_sec <dbl>
+
+Session info:
+R version 4.5.3 (2026-03-11)
+Platform: x86_64-pc-linux-gnu
+Running under: Ubuntu 22.04.5 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.10.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.10.0  LAPACK version 3.10.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Asia/Shanghai
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] ggplot2_4.0.3  tidyr_1.3.2    tibble_3.3.1   readr_2.2.0    dplyr_1.2.1   
+[6] TH.data_1.1-5  MASS_7.3-65    survival_3.8-6
+
+loaded via a namespace (and not attached):
+ [1] Matrix_1.7-4       bit_4.6.0          gtable_0.3.6       compiler_4.5.3    
+ [5] crayon_1.5.3       tidyselect_1.2.1   parallel_4.5.3     splines_4.5.3     
+ [9] scales_1.4.0       lattice_0.22-9     R6_2.6.1           labeling_0.4.3    
+[13] generics_0.1.4     pillar_1.11.1      RColorBrewer_1.1-3 tzdb_0.5.0        
+[17] rlang_1.2.0        utf8_1.2.6         S7_0.2.2           bit64_4.8.2       
+[21] cli_3.6.6          withr_3.0.2        magrittr_2.0.5     grid_4.5.3        
+[25] vroom_1.7.1        hms_1.1.4          lifecycle_1.0.5    vctrs_0.7.3       
+[29] glue_1.8.1         farver_2.1.2       purrr_1.2.2        tools_4.5.3       
+[33] pkgconfig_2.0.3   
