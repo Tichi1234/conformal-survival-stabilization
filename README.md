@@ -14,7 +14,7 @@ Running the scripts reproduces every result and figure in the paper.
 | `scripts/03_run-simulation3.R` | Table 4, internal ablation rows |
 | `scripts/03b_run-simulation3-external-benchmark.R` | Table 4, external rows (DR-COSARC, KM, Oracle); Figure `simulation3_coverage` |
 | `scripts/04_run-real-data-GBSG.R` | Table 5; Figure `gbsg_panels` |
-| `scripts/06_clip-sensitivity.R` | clipping-level sensitivity (Section 2.5); Figure `clip_sensitivity` |
+| `scripts/06_clip-sensitivity.R` | clipping-level sensitivity (Appendix D); Figure `clip_sensitivity` |
 | `scripts/05_make-figures.R` | builds all figures from `results/` |
 | `scripts/run_all.R` | runs everything above in order |
 
