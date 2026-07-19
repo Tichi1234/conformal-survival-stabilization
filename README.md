@@ -1,7 +1,7 @@
 # Finite-Sample Stabilization of IPCW/AIPCW Conformal LPBs
 
 Reproduction code for *Clipped Self-Normalized IPCW and AIPCW Conformal Lower
-Predictive Bounds for Right-Censored Survival Data* (Nyangweso, Wang and Ontita).
+Predictive Bounds for Right-Censored Survival Data* (Nyangweso and Wang).
 Running the scripts reproduces every result and figure in the paper.
 
 ## What each script produces
