@@ -2,7 +2,7 @@
 ## scripts/06_clip-sensitivity.R
 ##
 ## Sensitivity of the clipped methods to the clipping percentile q (the choice
-## promised in Section 2.5 of the manuscript). For each q the SAME calibration
+## promised in Section 3.5 of the manuscript). For each q the SAME calibration
 ## code path is used (the library reads getOption("herg_clip_q")), with data,
 ## splits, seeds and nuisances held fixed across q so any difference is due to
 ## the clipping level alone. q = 1.00 recovers the unclipped Hajek baseline.
@@ -10,10 +10,8 @@
 ## Output:
 ##   results/clip_sensitivity/clip_sensitivity_raw.csv
 ##   results/clip_sensitivity/clip_sensitivity_summary.csv
-##   figures/clip_sensitivity.png
 ##
 ## Run from the repository root:
-##   source("scripts/06_clip-sensitivity.R")
 ## =====================================================================
 
 source("R/source-code.R")
@@ -91,24 +89,5 @@ summary_tbl <- summary_tbl[order(summary_tbl$method, -summary_tbl$q), ]
 write.csv(raw, "results/clip_sensitivity/clip_sensitivity_raw.csv", row.names = FALSE)
 write.csv(summary_tbl, "results/clip_sensitivity/clip_sensitivity_summary.csv", row.names = FALSE)
 
-## Figure: the trade-off vs q (PAC-success and median LPB rescaled onto one panel)
-long <- rbind(
-  data.frame(q = summary_tbl$q, method = summary_tbl$method,
-             metric = "PAC success", value = summary_tbl$pac_success),
-  data.frame(q = summary_tbl$q, method = summary_tbl$method,
-             metric = "Median LPB", value = summary_tbl$med_lpb),
-  data.frame(q = summary_tbl$q, method = summary_tbl$method,
-             metric = "log10 max weight", value = log10(pmax(summary_tbl$max_wt, 1))))
-p <- ggplot(long, aes(x = q, y = value, colour = method)) +
-  geom_line() + geom_point() +
-  facet_wrap(~metric, scales = "free_y") +
-  scale_x_reverse(breaks = Q_GRID) +
-  labs(title = "Sensitivity to the clipping percentile q (1.00 = no clipping)",
-       x = "Clipping percentile q", y = NULL, colour = NULL) +
-  theme_bw(base_size = 11) +
-  theme(plot.title = element_text(face = "bold", size = 12),
-        legend.position = "bottom")
-ggsave("figures/clip_sensitivity.png", p, width = 9, height = 3.8, dpi = 200)
-
-message("Done. Wrote clip-sensitivity CSVs and figures/clip_sensitivity.png")
+message("Done. Wrote clip-sensitivity raw and summary CSV files.")
 print(summary_tbl, row.names = FALSE, digits = 3)
