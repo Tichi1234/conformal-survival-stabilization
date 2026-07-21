@@ -45,27 +45,42 @@ stack_panels <- function(df, cols, labels) {
   }, cols, labels))
 }
 
-box_facets <- function(df, levels, cols, labels, title, hline = NULL) {
+box_facets <- function(df, method_levels, cols, labels, title, hline = NULL) {
   long <- stack_panels(df, cols, labels)
-  long <- long[long$method %in% levels, ]
-  long$method <- factor(long$method, levels = levels)
-  long$panel  <- factor(long$panel, levels = labels[labels %in% long$panel])
+  long <- long[long$method %in% method_levels, ]
+  long$method <- factor(long$method, levels = method_levels)
+  long$panel <- factor(long$panel, levels = labels[labels %in% long$panel])
+
   p <- ggplot(long, aes(x = method, y = value)) +
-    geom_boxplot(outlier.size = 0.4, fill = TEAL, alpha = 0.55, colour = "grey25") +
+    geom_boxplot(
+      outlier.size = 0.4,
+      fill = TEAL,
+      alpha = 0.55,
+      colour = "grey25"
+    ) +
     facet_wrap(~panel, scales = "free_y") +
     labs(title = title, x = NULL, y = NULL) +
     theme_bw(base_size = 11) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(face = "bold", size = 12),
-          strip.background = element_rect(fill = "grey92"))
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      plot.title = element_text(face = "bold", size = 12),
+      strip.background = element_rect(fill = "grey92")
+    )
+
   if (!is.null(hline)) {
-    cov_only <- subset(long, panel == labels[1])
-    p <- p + geom_hline(data = data.frame(panel = factor(labels[1], levels = levels(long$panel))),
-                        aes(yintercept = hline), linetype = "dashed", colour = "grey30")
+    p <- p +
+      geom_hline(
+        data = data.frame(
+          panel = factor(labels[1], levels = base::levels(long$panel))
+        ),
+        aes(yintercept = hline),
+        linetype = "dashed",
+        colour = "grey30"
+      )
   }
+
   p
 }
-
 ## ---- Simulation 1 --------------------------------------------------------------
 message("Simulation 1 figures ...")
 s1 <- read_raw("results/simulation1/simulation1_raw.csv")
