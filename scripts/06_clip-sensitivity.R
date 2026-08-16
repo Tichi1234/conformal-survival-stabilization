@@ -2,7 +2,7 @@
 ## scripts/06_clip-sensitivity.R
 ##
 ## Sensitivity of the clipped methods to the clipping percentile q (the choice
-## promised in Section 3.5 of the manuscript). For each q the SAME calibration
+## promised in Section 3.2 of the manuscript). For each q the SAME calibration
 ## code path is used (the library reads getOption("herg_clip_q")), with data,
 ## splits, seeds and nuisances held fixed across q so any difference is due to
 ## the clipping level alone. q = 1.00 recovers the unclipped Hajek baseline.
