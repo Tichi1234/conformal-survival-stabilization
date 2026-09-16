@@ -1,5 +1,5 @@
 ## =====================================================================
-## dgp.R -- Data-generating mechanisms (Section 3.2 of the paper)
+## dgp.R -- Data-generating mechanisms 
 ##
 ## Event-time settings A (Weibull AFT, correctly specified), B (nonlinear
 ## misspecified), C (heteroscedastic). Censoring mechanisms C1 (PH, aligned

@@ -208,7 +208,67 @@ gbsg_fit_censoring_cox <- function(train, covariates = gbsg_covariates()) {
 
   fit
 }
+gbsg_fit_censoring_weibull <- function(dat,
+                                       covariates = gbsg_covariates()) {
 
+  if (sum(dat$Delta == 0, na.rm = TRUE) < 10) return(NULL)
+
+  f <- gbsg_surv_formula(
+    covariates,
+    event = "I(1 - Delta)"
+  )
+
+  fit <- tryCatch(
+    suppressWarnings(
+      survival::survreg(
+        f,
+        data = dat,
+        dist = "weibull",
+        control = survival::survreg.control(maxiter = 500)
+      )
+    ),
+    error = function(e) NULL
+  )
+
+  if (is.null(fit)) return(NULL)
+  if (!is.finite(fit$scale) || fit$scale <= 0 || fit$scale > 20) return(NULL)
+  if (any(!is.finite(stats::coef(fit)))) return(NULL)
+
+  fit
+}
+gbsg_predict_G_weibull <- function(fitC, newdata, time) {
+
+  if (is.null(fitC)) {
+    return(rep(NA_real_, nrow(newdata)))
+  }
+
+  lp <- tryCatch(
+    as.numeric(
+      predict(
+        fitC,
+        newdata = newdata,
+        type = "lp"
+      )
+    ),
+    error = function(e) rep(NA_real_, nrow(newdata))
+  )
+
+  time <- rep_len(time, length(lp))
+
+  shape <- 1 / fitC$scale
+  scale <- exp(lp)
+
+  G <- exp(
+    -(pmax(time, GBSG_MIN_POS_TIME) / scale)^shape
+  )
+
+  G[!is.finite(G)] <- NA_real_
+
+  pmin(
+    pmax(G, GBSG_G_FLOOR),
+    1
+  )
+}
 gbsg_fit_censoring_km0 <- function(train) {
   if (sum(train$Delta == 0, na.rm = TRUE) < 2) return(NULL)
   tryCatch(survfit(Surv(Y, 1 - Delta) ~ 1, data = train), error = function(e) NULL)
@@ -297,14 +357,29 @@ gbsg_clip_prob <- function(rule) {
          stop("Unknown clipping rule: ", rule))
 }
 
-gbsg_get_clip_c <- function(cal, fitC, rule = GBSG_CLIP_RULE) {
+gbsg_get_clip_c <- function(train, fitC, rule = GBSG_CLIP_RULE) {
   if (rule == "none") return(Inf)
   if (is.null(fitC)) return(Inf)
-  GY <- gbsg_predict_G_cox(fitC, cal, cal$Y)
+
+  GY <- gbsg_predict_G_cox(fitC, train, train$Y)
   omega <- 1 / GY
-  omega_pos <- omega[cal$Delta == 1 & is.finite(omega) & omega > 0]
+
+  omega_pos <- omega[
+    train$Delta == 1 &
+      is.finite(omega) &
+      omega > 0
+  ]
+
   if (length(omega_pos) == 0) return(Inf)
-  as.numeric(stats::quantile(omega_pos, probs = gbsg_clip_prob(rule), na.rm = TRUE))
+
+  as.numeric(
+    stats::quantile(
+      omega_pos,
+      probs = gbsg_clip_prob(rule),
+      na.rm = TRUE,
+      names = FALSE
+    )
+  )
 }
 
 gbsg_raw_ipcw_weights <- function(dat, fitC, clip_c = Inf) {
@@ -515,7 +590,7 @@ gbsg_augmentation_term <- function(tau, cache) {
   if (!is.finite(val)) NA_real_ else val
 }
 
-gbsg_select_tau <- function(cal, fitT, fitC, fitKM0, method,
+gbsg_select_tau <- function(train, cal, fitT, fitC, fitKM0, method,
                             clip_rule = GBSG_CLIP_RULE,
                             lpb_cap = Inf) {
   if (is.null(fitT)) return(list(tau_hat = NA_real_, phi_at_tau = NA_real_, clip_c = NA_real_))
@@ -523,7 +598,11 @@ gbsg_select_tau <- function(cal, fitT, fitC, fitKM0, method,
     return(list(tau_hat = NA_real_, phi_at_tau = NA_real_, clip_c = NA_real_))
   }
 
-  clip_c <- if (gbsg_method_uses_clip(method)) gbsg_get_clip_c(cal, fitC, rule = clip_rule) else Inf
+ clip_c <- if (gbsg_method_uses_clip(method)) {
+  gbsg_get_clip_c(train, fitC, rule = clip_rule)
+} else {
+  Inf
+}
 
   wH <- NULL
   if (method %in% c("H-IPCW", "Stab-IPCW", "Clip-IPCW", "H-AIPCW", "Clip-AIPCW")) {
@@ -562,12 +641,27 @@ gbsg_select_tau <- function(cal, fitT, fitC, fitKM0, method,
   }
 
   phi2 <- phi
-  phi2[!is.finite(phi2)] <- -Inf
-  feasible <- which(cummin(phi2) >= 0)
-  tau_hat <- if (length(feasible) == 0) min(GBSG_TAU_GRID) else max(GBSG_TAU_GRID[feasible])
-  idx <- which.min(abs(GBSG_TAU_GRID - tau_hat))
+phi2[!is.finite(phi2)] <- -Inf
 
-  list(tau_hat = tau_hat, phi_at_tau = phi[idx], clip_c = clip_c)
+feasible <- which(cummin(phi2) >= 0)
+feasible_found <- length(feasible) > 0
+
+if (feasible_found) {
+  tau_hat <- max(GBSG_TAU_GRID[feasible])
+} else {
+  ## Conservative boundary fallback, retained but explicitly flagged.
+  tau_hat <- min(GBSG_TAU_GRID)
+}
+
+idx <- which.min(abs(GBSG_TAU_GRID - tau_hat))
+
+list(
+  tau_hat = tau_hat,
+  phi_at_tau = phi[idx],
+  clip_c = clip_c,
+  feasible_found = feasible_found,
+  boundary_fallback = !feasible_found
+)
 }
 
 ## -------------------------------------------------------------------------
@@ -575,27 +669,40 @@ gbsg_select_tau <- function(cal, fitT, fitC, fitKM0, method,
 ## -------------------------------------------------------------------------
 
 gbsg_eval_ipcw_coverage <- function(test, lpb, fitC_eval) {
-  GY <- gbsg_predict_G_cox(fitC_eval, test, test$Y)
+
+  GY <- gbsg_predict_G_weibull(
+    fitC_eval,
+    test,
+    test$Y
+  )
+
   w <- test$Delta / GY
   Icov <- as.numeric(test$Y >= lpb)
 
   cov_ht <- mean(w * Icov, na.rm = TRUE)
 
   cov_hajek <- if (sum(w, na.rm = TRUE) > 0) {
-    sum(w * Icov, na.rm = TRUE) / sum(w, na.rm = TRUE)
+    sum(w * Icov, na.rm = TRUE) /
+      sum(w, na.rm = TRUE)
   } else {
     NA_real_
   }
 
   obs_cov_y <- mean(test$Y >= lpb, na.rm = TRUE)
 
-  c(coverage_ipcw_ht = cov_ht,
+  c(
+    coverage_ipcw_ht = cov_ht,
     coverage_ipcw_hajek = cov_hajek,
-    observed_y_coverage = obs_cov_y)
+    observed_y_coverage = obs_cov_y
+  )
 }
 
 gbsg_worst_slice_coverage <- function(test, lpb, fitC_eval) {
-  GY <- gbsg_predict_G_cox(fitC_eval, test, test$Y)
+ GY <- gbsg_predict_G_weibull(
+  fitC_eval,
+  test,
+  test$Y
+)
   w <- test$Delta / GY
   Icov <- as.numeric(test$Y >= lpb)
 
@@ -635,8 +742,16 @@ gbsg_run_single_method <- function(train, cal, test,
                                    lpb_cap = Inf) {
   start_time <- proc.time()[3]
 
-  tau_res <- gbsg_select_tau(cal, fitT, fitC, fitKM0, method,
-                             clip_rule = clip_rule, lpb_cap = lpb_cap)
+tau_res <- gbsg_select_tau(
+  train = train,
+  cal = cal,
+  fitT = fitT,
+  fitC = fitC,
+  fitKM0 = fitKM0,
+  method = method,
+  clip_rule = clip_rule,
+  lpb_cap = lpb_cap
+) 
 
   lpb <- gbsg_predict_q_weibull(fitT, test, tau_res$tau_hat, lpb_cap = lpb_cap)
 
@@ -650,13 +765,18 @@ gbsg_run_single_method <- function(train, cal, test,
     method = method,
     tau_hat = tau_res$tau_hat,
     calibration_moment = tau_res$phi_at_tau,
+    feasible_found = tau_res$feasible_found,
+    boundary_fallback = tau_res$boundary_fallback,
+    pac_success_nominal =
+    as.integer(coverage_primary >= GBSG_TARGET_COV),
+    pac_success_tol =
+    as.integer(coverage_primary >= GBSG_TARGET_COV - 0.02),
     clip_c = tau_res$clip_c,
     coverage_ipcw_hajek = coverage_primary,
     coverage_ipcw_ht = unname(covs["coverage_ipcw_ht"]),
     observed_y_coverage = unname(covs["observed_y_coverage"]),
     coverage_shortfall = max(0, GBSG_TARGET_COV - coverage_primary),
     abs_calibration_error = abs(coverage_primary - GBSG_TARGET_COV),
-    pac_success = as.integer(coverage_primary >= GBSG_TARGET_COV),
     mean_lpb = mean(lpb, na.rm = TRUE),
     median_lpb = stats::median(lpb, na.rm = TRUE),
     mean_log_lpb = mean(log(pmax(lpb, GBSG_MIN_POS_TIME)), na.rm = TRUE),
@@ -716,10 +836,15 @@ run_gbsg_real_data <- function(R = 100,
     fitC <- gbsg_fit_censoring_cox(train, covariates)
     fitKM0 <- gbsg_fit_censoring_km0(train)
 
-    ## Evaluation model uses train + calibration data only.
-    fitC_eval <- gbsg_fit_censoring_cox(rbind(train, cal), covariates)
+   ## Independent evaluation nuisance model:
+## Weibull AFT censoring model fitted without test outcomes.
+fitC_eval <- gbsg_fit_censoring_weibull(
+  rbind(train, cal),
+  covariates
+)
 
-    lpb_cap <- gbsg_lpb_cap(train)
+## No application-specific truncation of predictive bounds.
+lpb_cap <- Inf
 
     split_rows <- lapply(methods, function(m) {
       tryCatch(
@@ -741,13 +866,16 @@ run_gbsg_real_data <- function(R = 100,
             method = m,
             tau_hat = NA_real_,
             calibration_moment = NA_real_,
+            feasible_found = NA,
+            boundary_fallback = NA,
             clip_c = NA_real_,
             coverage_ipcw_hajek = NA_real_,
             coverage_ipcw_ht = NA_real_,
             observed_y_coverage = NA_real_,
             coverage_shortfall = NA_real_,
             abs_calibration_error = NA_real_,
-            pac_success = NA_integer_,
+            pac_success_nominal = NA_integer_,
+	    pac_success_tol = NA_integer_,
             mean_lpb = NA_real_,
             median_lpb = NA_real_,
             mean_log_lpb = NA_real_,
@@ -794,7 +922,12 @@ run_gbsg_real_data <- function(R = 100,
       mean_cov = mean(coverage_ipcw_hajek, na.rm = TRUE),
       mcse_cov = stats::sd(coverage_ipcw_hajek, na.rm = TRUE) / sqrt(R),
       med_cov = stats::median(coverage_ipcw_hajek, na.rm = TRUE),
-      pac_success = mean(pac_success, na.rm = TRUE),
+      cov_q05 = stats::quantile(coverage_ipcw_hajek,0.05,na.rm = TRUE),
+      cov_q10 = stats::quantile(coverage_ipcw_hajek,0.10,na.rm = TRUE),
+      feasible_rate = mean(feasible_found, na.rm = TRUE),
+      fallback_rate = mean(boundary_fallback, na.rm = TRUE),
+      pac_success_nominal =   mean(pac_success_nominal, na.rm = TRUE),
+      pac_success_tol =  mean(pac_success_tol, na.rm = TRUE),
       mean_short = mean(coverage_shortfall, na.rm = TRUE),
       mean_abscal = mean(abs_calibration_error, na.rm = TRUE),
       med_lpb = stats::median(median_lpb, na.rm = TRUE),

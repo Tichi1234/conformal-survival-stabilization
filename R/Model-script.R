@@ -1,6 +1,7 @@
 ## =====================================================================
-## Model-script.R -- Nuisance estimation (Section 2.2 / 3.4)
+## nuisance.R -- Nuisance estimation 
 ##
+
 ## Two backends, both returning the SAME interface object `nu` with:
 ##   nu$qhat(Xnew, tau)   -> matrix [nrow(Xnew) x length(tau)]  candidate LPBs
 ##   nu$Smat(Xnew, tgrid) -> matrix [nrow(Xnew) x length(tgrid)] event survival
@@ -16,15 +17,276 @@ suppressPackageStartupMessages(library(survival))
 
 .feat <- function(X) as.matrix(X[, c("X1", "X2", "X3", "X4")])
 
+## ---- Safe Weibull survreg fit --------------------------------------------
+
+.fit_survreg_safe <- function(
+  formula,
+  data,
+  dist = "weibull",
+  prediction_multiplier = 1e6
+) {
+
+  ## ------------------------------------------------------------
+  ## Validate a survreg fit.
+  ##
+  ## A fit is rejected not only when coefficients/scale are
+  ## non-finite, but also when fitted event times are numerically
+  ## implausible relative to the observed time scale.
+  ## ------------------------------------------------------------
+  fit_is_valid <- function(fit) {
+
+    if (is.null(fit)) {
+      return(FALSE)
+    }
+
+    if (
+      !all(is.finite(coef(fit))) ||
+      !is.finite(fit$scale) ||
+      fit$scale <= 0
+    ) {
+      return(FALSE)
+    }
+
+    pred <- tryCatch(
+      predict(
+        fit,
+        newdata = data,
+        type = "response"
+      ),
+      error = function(e) rep(NA_real_, nrow(data))
+    )
+
+    if (
+      length(pred) == 0 ||
+      any(!is.finite(pred)) ||
+      any(pred <= 0)
+    ) {
+      return(FALSE)
+    }
+
+    ## Very generous data-adaptive numerical ceiling.
+    ## This is intended only to catch catastrophic fits such as
+    ## the 10^136 predictions observed in Simulation 1, replicate 92.
+    y_ref <- max(
+      data$Y[is.finite(data$Y) & data$Y > 0],
+      na.rm = TRUE
+    )
+
+    if (!is.finite(y_ref) || y_ref <= 0) {
+      y_ref <- 1
+    }
+
+    if (max(pred, na.rm = TRUE) > prediction_multiplier * y_ref) {
+      return(FALSE)
+    }
+
+    TRUE
+  }
+
+
+  ## ------------------------------------------------------------
+  ## Attempt 1
+  ## ------------------------------------------------------------
+  warn1 <- FALSE
+
+  fit1 <- withCallingHandlers(
+    survreg(
+      formula,
+      data = data,
+      dist = dist,
+      control = survreg.control(
+        maxiter = 200
+      )
+    ),
+    warning = function(w) {
+
+      if (grepl(
+        "Ran out of iterations|did not converge",
+        conditionMessage(w),
+        ignore.case = TRUE
+      )) {
+
+        warn1 <<- TRUE
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+
+  good1 <- !warn1 && fit_is_valid(fit1)
+
+  if (good1) {
+    return(
+      list(
+        fit = fit1,
+        retried = FALSE,
+        fallback = FALSE
+      )
+    )
+  }
+
+
+  ## ------------------------------------------------------------
+  ## Attempt 2
+  ## ------------------------------------------------------------
+  warn2 <- FALSE
+
+  fit2 <- withCallingHandlers(
+    survreg(
+      formula,
+      data = data,
+      dist = dist,
+      control = survreg.control(
+        maxiter = 1000,
+        rel.tolerance = 1e-7
+      )
+    ),
+    warning = function(w) {
+
+      if (grepl(
+        "Ran out of iterations|did not converge",
+        conditionMessage(w),
+        ignore.case = TRUE
+      )) {
+
+        warn2 <<- TRUE
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+
+  good2 <- !warn2 && fit_is_valid(fit2)
+
+  if (good2) {
+    return(
+      list(
+        fit = fit2,
+        retried = TRUE,
+        fallback = FALSE
+      )
+    )
+  }
+
+
+  ## ------------------------------------------------------------
+  ## Attempt 3: empirical starting values
+  ## ------------------------------------------------------------
+
+  p <- length(
+    attr(
+      terms(formula),
+      "term.labels"
+    )
+  )
+
+  logY_event <- log(
+    pmax(
+      data$Y[data$Delta == 1],
+      1e-8
+    )
+  )
+
+  if (length(logY_event) >= 2) {
+
+    init_intercept <- median(
+      logY_event,
+      na.rm = TRUE
+    )
+
+    init_scale <- sd(
+      logY_event,
+      na.rm = TRUE
+    )
+
+  } else {
+
+    logY_all <- log(
+      pmax(
+        data$Y,
+        1e-8
+      )
+    )
+
+    init_intercept <- median(
+      logY_all,
+      na.rm = TRUE
+    )
+
+    init_scale <- sd(
+      logY_all,
+      na.rm = TRUE
+    )
+  }
+
+  if (
+    !is.finite(init_scale) ||
+    init_scale <= 1e-4
+  ) {
+    init_scale <- 1
+  }
+
+  init_full <- c(
+    init_intercept,
+    rep(0, p),
+    log(init_scale)
+  )
+
+  warn3 <- FALSE
+
+  fit3 <- withCallingHandlers(
+    survival::survreg(
+      formula,
+      data = data,
+      dist = dist,
+      init = init_full,
+      control = survival::survreg.control(
+        maxiter = 2000,
+        rel.tolerance = 1e-7
+      )
+    ),
+    warning = function(w) {
+
+      if (grepl(
+        "Ran out of iterations|did not converge",
+        conditionMessage(w),
+        ignore.case = TRUE
+      )) {
+
+        warn3 <<- TRUE
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+
+  good3 <- !warn3 && fit_is_valid(fit3)
+
+  if (!good3) {
+    stop(
+      paste(
+        "Weibull survreg nuisance model failed",
+        "numerical validity checks after all three fitting attempts."
+      )
+    )
+  }
+
+  list(
+    fit = fit3,
+    retried = TRUE,
+    fallback = TRUE
+  )
+}
+
 ## ---- Weibull AFT event + Cox censoring -----------------------------------
 fit_nuisances_weibull_cox <- function(train) {
   df <- data.frame(Y = train$Y, Delta = train$Delta, train$X)
 
-  ## event-time Weibull AFT
-  fe <- survreg(Surv(Y, Delta) ~ X1 + X2 + X3 + X4, data = df, dist = "weibull")
-  sig <- fe$scale
+## event-time Weibull AFT
+fe_obj <- .fit_survreg_safe(Surv(Y, Delta) ~ X1 + X2 + X3 + X4,
+  data = df, dist = "weibull")
 
-  ## censoring Cox (censoring = event of interest)
+fe <- fe_obj$fit
+sig <- fe$scale
+
+## censoring Cox (censoring = event of interest)
   fc <- coxph(Surv(Y, 1 - Delta) ~ X1 + X2 + X3 + X4, data = df)
   bc <- coef(fc)
   bh <- basehaz(fc, centered = FALSE)            # H0(t) at covariate = 0
@@ -58,7 +320,8 @@ fit_nuisances_weibull_cox <- function(train) {
     exp(-H0(t) * e)
   }
   list(backend = "weibull_cox",
-       qhat = qhat, Smat = Smat, Gmat = Gmat, Svec = Svec, Gvec = Gvec)
+       qhat = qhat, Smat = Smat, Gmat = Gmat, Svec = Svec, Gvec = Gvec, 
+       survreg_retried = fe_obj$retried, survreg_fallback = fe_obj$fallback)
 }
 
 ## ---- Random survival forest backend --------------------------------------
