@@ -6,16 +6,10 @@ TEAL <- "#80B1B3"
 
 g <- read.csv("results/gbsg/gbsg_realdata_raw_R100.csv")
 
-cat("Rows in GBSG raw file:", nrow(g), "\n")
-cat("Methods in GBSG raw file:\n")
-print(table(g$method, useNA = "ifany"))
-
 method_order <- c("Naive-Y", "CC", "HT-IPCW", "H-IPCW",
                   "Stab-IPCW", "Clip-IPCW", "H-AIPCW", "Clip-AIPCW")
-
 g$method <- factor(g$method, levels = method_order)
 
-# Map actual GBSG column names to plotting variables
 plot_df <- data.frame(
   method = g$method,
   Coverage = as.numeric(g$coverage_ipcw_hajek),
@@ -40,12 +34,8 @@ gbsg_long$metric <- factor(
   levels = c("Coverage", "Median LPB", "Effective sample size", "log10 maximum weight")
 )
 
-cat("Rows after filtering:", nrow(gbsg_long), "\n")
-cat("Rows by metric:\n")
-print(table(gbsg_long$metric))
-
 p <- ggplot(gbsg_long, aes(x = method, y = value)) +
-  geom_boxplot(outlier.size = 0.4, fill = TEAL, alpha = 0.55, colour = "grey25") +
+  geom_boxplot(outlier.size = 0.4, fill = TEAL, alpha = 0.85, colour = "grey25") +
   geom_hline(
     data = data.frame(metric = factor("Coverage", levels = levels(gbsg_long$metric)),
                       yintercept = 0.90),
@@ -66,5 +56,8 @@ p <- ggplot(gbsg_long, aes(x = method, y = value)) +
   )
 
 ggsave("figures/gbsg_panels.png", p, width = 9, height = 6, dpi = 200)
+ggsave("figures/GBSG_final_manuscript.png", p, width = 9, height = 6, dpi = 200)
 
-cat("GBSG figure written to figures/gbsg_panels.png\n")
+cat("Wrote:\n")
+cat("  figures/gbsg_panels.png\n")
+cat("  figures/GBSG_final_manuscript.png\n")
