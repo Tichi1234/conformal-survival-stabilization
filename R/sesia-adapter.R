@@ -2,13 +2,11 @@
 ## sesia-adapter.R
 ##
 ## Adapter to Sesia & Svetnik (2025) DR-COSARC implementation.
-## The authors' source code is kept unchanged under external/sesia/.
+## The authors' source code is kept unchanged under external_methods_sesia/.
 ## =====================================================================
 
 SESIA_DIR <- file.path(
-  "external",
-  "sesia",
-  "conformal_survival-main",
+  "external_methods_sesia",
   "code",
   "conf_surv"
 )
