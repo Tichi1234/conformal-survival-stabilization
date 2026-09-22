@@ -1,79 +1,38 @@
-# Finite-Sample Stabilization of IPCW/AIPCW Conformal LPBs
+# Stabilizing IPCW Conformal Lower Predictive Bounds for Right-Censored Survival Data by Weight Clipping
 
-Reproduction code for *Clipped Self-Normalized IPCW and AIPCW Conformal Lower
-Predictive Bounds for Right-Censored Survival Data* (Nyangweso & Wang).
-Running the scripts reproduces every result and figure in the paper.
+This repository contains the R code and outputs accompanying the manuscript:
 
-## What each script produces
+**Nyangweso, H. N. and Wang, H.  
+“Stabilizing IPCW Conformal Lower Predictive Bounds for Right-Censored Survival Data by Weight Clipping.”**
 
-| Script | Reproduces |
-|--------|------------|
-| `scripts/00_smoke-test.R` | quick 3-replicate end-to-end check |
-| `scripts/01_run-simulation1.R` | Table 2; Figures `simulation1_coverage`, `simulation1_stability` |
-| `scripts/02_run-simulation2.R` | Table 3; Figures `simulation2_coverage`, `simulation2_maxweight` |
-| `scripts/03_run-simulation3.R` | Table 4, internal ablation rows |
-| `scripts/03b_run-simulation3-external-benchmark.R` | Table 4, external rows (DR-COSARC, KM, Oracle); Figure `simulation3_coverage` |
-| `scripts/04_run-real-data-GBSG.R` | Table 5; Figure `gbsg_panels` |
-| `scripts/06_clip-sensitivity.R` | clipping-level sensitivity (Section 2.5); Figure `clip_sensitivity` |
-| `scripts/05_make-figures.R` | builds all figures from `results/` |
-| `scripts/run_all.R` | runs everything above in order |
+## Manuscript outputs
 
-## Quick start
+| Output | Analysis | Script |
+|---|---|---|
+| Table 1 | Simulation 1: internal ablation | `scripts/01_run-simulation1.R` |
+| Figure 1 | Simulation 1 | `scripts/figure1_simulation1.R` |
+| Table 2 | Simulation 2: censoring stress | `scripts/02_run-simulation2.R` |
+| Figure 2 | Simulation 2 | `scripts/figure2_simulation2.R` |
+| Table 3 | Simulation 3: external benchmark | `scripts/03b_run-simulation3-external-benchmark.R` |
+| Figure 3 | Simulation 3 | `scripts/figure3_simulation3.R` |
+| Table 4 | GBSG real-data application | `scripts/04_run-real-data-GBSG.R` |
+| Figure 4 | GBSG application | `scripts/figure4_gbsg_application.R` |
+| Table 5 | Simulation data-generating mechanisms | Simulation code and manuscript |
+| Table 6 | Clipping sensitivity | `scripts/06_clip-sensitivity.R`, `scripts/07_make-clipping-sensitivity-table.R` |
 
-From the **repository root** (the folder containing `R/` and `scripts/`):
+## Repository structure
+
+- `R/` — core calibration, weighting, simulation, and real-data functions.
+- `scripts/` — simulation drivers, figure scripts, and sensitivity analyses.
+- `results/` — simulation and real-data outputs used in the manuscript.
+- `figures/` — manuscript figures in PDF, TIFF, and PNG formats.
+
+## Manuscript figures
+
+The four manuscript figures are generated using:
 
 ```r
-source("R/source-code.R")
-smoke_test()                       # fast check
-```
-
-Reproduce everything (full run, R = 100 per cell; long):
-
-```r
-source("scripts/run_all.R")
-```
-
-Or run pieces individually, e.g. `source("scripts/01_run-simulation1.R")`.
-All outputs are written to deterministic paths under `results/`, and
-`05_make-figures.R` reads those and writes PNGs to `figures/`.
-
-### Running from RStudio
-Set the working directory to the repo root first
-(Session -> Set Working Directory -> Choose Directory), then `source(...)`.
-`file.exists("R/source-code.R")` should return `TRUE` before you run anything.
-
-## Dependencies
-
-Core simulations: `survival`. Figures: `ggplot2`. GBSG application additionally:
-`TH.data`, `dplyr`, `readr`, `tibble`, `tidyr`. External benchmark (`03b`)
-additionally: `tidyverse`, `R6`. Pinned versions are in `sessionInfo.txt`.
-
-## Simulation 3 external benchmark (third-party code required)
-
-`03b` calls the conformal-survival code of Sesia & Svetnik (2024), which is
-**not** distributed here because their release carried no license. To run `03b`,
-obtain their code and place `utils_survival.R`, `utils_censoring.R`,
-`utils_conformal.R`, and `utils_decensoring.R` in
-`external_methods_sesia/code/conf_surv/` (see that folder's `NOTICE.md`).
-Every other script runs without it.
-
-## Reproducibility
-
-Replicates are seeded as `seed = 1000 * r`, so each scenario reproduces exactly
-across machines and across the clipping-level sweep; the `lambda0` pilot uses a
-separate, restored RNG stream. Target coverage is 0.90, the candidate grid is
-`{0.01, ..., 0.49}`, and the clipping percentile defaults to the adaptive 90th
-percentile (configurable via `options(herg_clip_q = ...)`; `06` uses this).
-
-## Repository layout
-
-```
-R/                          calibration library and data-generating code
-scripts/                    numbered entry points + run_all.R
-external_methods_sesia/     placeholder for Sesia & Svetnik code (see NOTICE.md)
-tools/                      one-off recovery utilities (NOT part of the clean rerun)
-results/  figures/          generated outputs (created on first run)
-```
-
-The `tools/` scripts re-ran failed/overflowing replicates during development.
-A clean run of `02` and `03b` should not need them; they are kept only for record.
+source("scripts/figure1_simulation1.R")
+source("scripts/figure2_simulation2.R")
+source("scripts/figure3_simulation3.R")
+source("scripts/figure4_gbsg_application.R")
