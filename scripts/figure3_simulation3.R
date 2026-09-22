@@ -10,7 +10,7 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 
-setwd("~/clipipcw_project")
+source("R/figure_palette.R")
 
 sim3 <- read.csv(
   "results/simulation3_pass3_R100/simulation3_raw.csv"
@@ -93,12 +93,21 @@ p3A <- ggplot(
   fig3_df,
   aes(
     x = method,
-    y = q05_cov
-  )
+    y = q05_cov,
+    fill = method 
+ )
 ) +
   geom_col(
-    width = 0.65
-  ) +
+  width = 0.65,
+  colour = "grey20",
+  linewidth = 0.3,
+  alpha = 0.85
+) +
+scale_fill_manual(
+  values = METHOD_COLS,
+  drop = FALSE,
+  guide = "none"
+) +
   geom_hline(
     yintercept = 0.90,
     linetype = "dashed",
@@ -129,12 +138,21 @@ p3B <- ggplot(
   fig3_df,
   aes(
     x = method,
-    y = pac_ge_088
+    y = pac_ge_088,
+    fill = method
   )
 ) +
   geom_col(
-    width = 0.65
-  ) +
+  width = 0.65,
+  colour = "grey20",
+  linewidth = 0.3,
+  alpha = 0.85
+) +
+scale_fill_manual(
+  values = METHOD_COLS,
+  drop = FALSE,
+  guide = "none"
+) +
   coord_cartesian(
     ylim = c(0.60, 1.00)
   ) +
@@ -160,12 +178,21 @@ p3C <- ggplot(
   fig3_df,
   aes(
     x = method,
-    y = med_lpb
+    y = med_lpb,
+    fill = method
   )
 ) +
   geom_col(
-    width = 0.65
-  ) +
+  width = 0.65,
+  colour = "grey20",
+  linewidth = 0.3,
+  alpha = 0.85
+) +
+scale_fill_manual(
+  values = METHOD_COLS,
+  drop = FALSE,
+  guide = "none"
+) +
   labs(
     x = NULL,
     y = "Median lower predictive bound",
@@ -205,6 +232,14 @@ ggsave(
   height = 75,
   units = "mm",
   dpi = 300
+)
+
+ggsave(
+  "figures/Figure3_Simulation3_external_benchmark.pdf",
+  fig3,
+  width = 183,
+  height = 75,
+  units = "mm"
 )
 
 ggsave(
