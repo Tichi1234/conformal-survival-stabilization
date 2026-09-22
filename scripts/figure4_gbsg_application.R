@@ -4,12 +4,11 @@
 ## Repeated train/calibration/test splits, R = 100
 ## ============================================================
 
-library(dplyr)
-library(readr)
 library(ggplot2)
+library(dplyr)
 library(patchwork)
 
-setwd("~/clipipcw_project")
+source("R/figure_palette.R")
 
 ## ------------------------------------------------------------
 ## 1. Locate most recent final GBSG R=100 run
@@ -145,9 +144,23 @@ theme_pub <- theme_classic(base_size = 8) +
 
 pA <- ggplot(
   fig4_df,
-  aes(x = method, y = feasible_rate)
+  aes(
+  x = method,
+  y = feasible_rate,
+  fill = method
+)
 ) +
-  geom_col(width = 0.72) +
+  geom_col(
+    width = 0.72,
+    colour = "grey20",
+    linewidth = 0.3,
+    alpha = 0.85
+  ) +
+  scale_fill_manual(
+    values = METHOD_COLS,
+    drop = FALSE,
+    guide = "none"
+  ) +
   geom_hline(
     yintercept = 1,
     linetype = "dashed",
@@ -173,9 +186,20 @@ pA <- ggplot(
 
 pB <- ggplot(
   fig4_df,
-  aes(x = method, y = q05_cov_feasible)
+  aes(
+  x = method,
+  y = q05_cov_feasible,
+  colour = method
+)
 ) +
-  geom_point(size = 2.4) +
+  geom_point(
+    size = 2.8
+  ) +
+  scale_colour_manual(
+    values = METHOD_COLS,
+    drop = FALSE,
+    guide = "none"
+  ) +
   geom_hline(
     yintercept = 0.90,
     linetype = "dashed",
@@ -200,9 +224,23 @@ pB <- ggplot(
 
 pC <- ggplot(
   fig4_df,
-  aes(x = method, y = med_lpb_feasible)
+  aes(
+  x = method,
+  y = med_lpb_feasible,
+  fill = method
+)
 ) +
-  geom_col(width = 0.72) +
+  geom_col(
+    width = 0.72,
+    colour = "grey20",
+    linewidth = 0.3,
+    alpha = 0.85
+  ) +
+  scale_fill_manual(
+    values = METHOD_COLS,
+    drop = FALSE,
+    guide = "none"
+  ) +
   labs(
     title = "C",
     x = NULL,
@@ -216,9 +254,23 @@ pC <- ggplot(
 
 pD <- ggplot(
   fig4_df,
-  aes(x = method, y = mean_ess)
+  aes(
+  x = method,
+  y = mean_ess,
+  fill = method
+)
 ) +
-  geom_col(width = 0.72) +
+  geom_col(
+    width = 0.72,
+    colour = "grey20",
+    linewidth = 0.3,
+    alpha = 0.85
+  ) +
+  scale_fill_manual(
+    values = METHOD_COLS,
+    drop = FALSE,
+    guide = "none"
+  ) +
   labs(
     title = "D",
     x = NULL,
@@ -249,6 +301,14 @@ ggsave(
   height = 145,
   units = "mm",
   dpi = 600
+)
+
+ggsave(
+  "figures/Figure4_GBSG_realdata_application.pdf",
+  fig4,
+  width = 183,
+  height = 145,
+  units = "mm"
 )
 
 ggsave(

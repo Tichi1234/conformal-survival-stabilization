@@ -12,6 +12,7 @@
 library(ggplot2)
 library(dplyr)
 library(patchwork)
+source("R/figure_palette.R")
 
 ## ------------------------------------------------------------
 ## 1. Load corrected Simulation 2 data
@@ -147,6 +148,7 @@ p2A <- ggplot(
     x = cens * 100,
     y = q05_cov,
     group = method,
+    colour = method,
     linetype = method,
     shape = method
   )
@@ -157,6 +159,10 @@ p2A <- ggplot(
   geom_point(
     size = 2.2
   ) +
+  scale_colour_manual(
+  values = METHOD_COLS,
+  drop = FALSE
+) +
   geom_hline(
     yintercept = 0.90,
     linetype = "dashed",
@@ -200,10 +206,10 @@ p2B <- ggplot(
     size = 2.5
   ) +
   scale_fill_gradient(
-    low = "grey90",
-    high = "grey35",
-    limits = c(0.65, 1.00),
-    guide = "none"
+  low = "#F1F8F6",
+  high = "#009E73",
+  limits = c(0.65, 1.00),
+  guide = "none"
   ) +
   labs(
     x = "Censoring level",
@@ -250,12 +256,13 @@ p2C_df$xpos <-
 p2C <- ggplot(
   p2C_df,
   aes(
-    x = xpos,
-    y = mean_ess,
-    group = method,
-    linetype = method,
-    shape = method
-  )
+  x = xpos,
+  y = mean_ess,
+  group = method,
+  colour = method,
+  linetype = method,
+  shape = method
+)
 ) +
   geom_line(
     linewidth = 0.55
@@ -263,7 +270,11 @@ p2C <- ggplot(
   geom_point(
     size = 2.2
   ) +
-  scale_x_continuous(
+ scale_colour_manual(
+  values = METHOD_COLS,
+  drop = FALSE
+) +
+ scale_x_continuous(
     breaks = c(40, 60, 80),
     labels = c(
       "40",
@@ -317,6 +328,15 @@ ggsave(
   height = 80,
   units = "mm",
   dpi = 300
+)
+
+## Vector PDF for manuscript submission
+ggsave(
+  filename = "figures/Figure2_Simulation2_censoring_stress.pdf",
+  plot = fig2,
+  width = 183,
+  height = 80,
+  units = "mm"
 )
 
 ## Publication-quality TIFF

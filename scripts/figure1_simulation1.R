@@ -10,6 +10,7 @@
 library(ggplot2)
 library(dplyr)
 library(patchwork)
+source("R/figure_palette.R")
 
 ## ------------------------------------------------------------
 ## 1. Load corrected Simulation 1 data
@@ -67,13 +68,21 @@ pA <- ggplot(
   sim1,
   aes(
     x = method,
-    y = coverage
+    y = coverage,
+    fill = method
   )
 ) +
   geom_boxplot(
     width = 0.62,
     outlier.shape = NA,
-    linewidth = 0.35
+    linewidth = 0.35,
+    colour = "grey20",
+    alpha = 0.80
+  )+
+  scale_fill_manual(
+    values = METHOD_COLS,
+    drop = FALSE,
+    guide = "none"
   ) +
   geom_hline(
     yintercept = 0.90,
@@ -102,14 +111,22 @@ pB <- ggplot(
   sim1,
   aes(
     x = method,
-    y = med_lpb
+    y = med_lpb,
+    fill = method
   )
 ) +
-  geom_boxplot(
-    width = 0.62,
-    outlier.shape = NA,
-    linewidth = 0.35
-  ) +
+   geom_boxplot(
+  width = 0.62,
+  outlier.shape = NA,
+  linewidth = 0.35,
+  colour = "grey20",
+  alpha = 0.80
+) +
+scale_fill_manual(
+  values = METHOD_COLS,
+  drop = FALSE,
+  guide = "none"
+) +
   labs(
     x = NULL,
     y = "Median lower predictive bound",
@@ -129,14 +146,22 @@ pC <- ggplot(
   sim1,
   aes(
     x = method,
-    y = ess
+    y = ess,
+    fill = method
   )
 ) +
   geom_boxplot(
-    width = 0.62,
-    outlier.shape = NA,
-    linewidth = 0.35
-  ) +
+  width = 0.62,
+  outlier.shape = NA,
+  linewidth = 0.35,
+  colour = "grey20",
+  alpha = 0.80
+) +
+scale_fill_manual(
+  values = METHOD_COLS,
+  drop = FALSE,
+  guide = "none"
+) +
   labs(
     x = NULL,
     y = "Effective sample size",
@@ -144,7 +169,7 @@ pC <- ggplot(
   ) +
   theme_sim +
   theme(
-    axis.text.x = element_text(
+   axis.text.x = element_text(
       angle = 35,
       hjust = 1
     )
@@ -158,14 +183,22 @@ pD <- ggplot(
   sim1,
   aes(
     x = method,
-    y = max_raw_wt
+    y = max_raw_wt,
+    fill = method
   )
 ) +
   geom_boxplot(
-    width = 0.62,
-    outlier.shape = NA,
-    linewidth = 0.35
-  ) +
+  width = 0.62,
+  outlier.shape = NA,
+  linewidth = 0.35,
+  colour = "grey20",
+  alpha = 0.80
+) +
+scale_fill_manual(
+  values = METHOD_COLS,
+  drop = FALSE,
+  guide = "none"
+) +
   scale_y_log10() +
   labs(
     x = NULL,
@@ -219,3 +252,14 @@ ggsave(
   dpi = 600,
   compression = "lzw"
 )
+
+## Vector PDF for manuscript submission
+ggsave(
+  filename = "figures/Figure1_Simulation1_ablation_corrected.pdf",
+  plot = fig1,
+  width = 183,
+  height = 138,
+  units = "mm"
+)
+
+
