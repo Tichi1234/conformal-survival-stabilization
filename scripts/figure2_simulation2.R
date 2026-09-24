@@ -182,46 +182,45 @@ p2A <- ggplot(
   theme_fig2
 
 ## ------------------------------------------------------------
-## 7. Panel B: PAC success heatmap
+## 7. Panel B: Proportion attaining coverage >= 0.88
 ## ------------------------------------------------------------
 
 p2B <- ggplot(
   table2_sim2,
   aes(
-    x = cens_f,
-    y = method,
-    fill = pac_ge_088
+    x = cens * 100,
+    y = pac_ge_088,
+    group = method,
+    colour = method,
+    linetype = method,
+    shape = method
   )
 ) +
-  geom_tile(
-    linewidth = 0.4
+  geom_line(
+    linewidth = 0.55
   ) +
-  geom_text(
-    aes(
-      label = sprintf(
-        "%.2f",
-        pac_ge_088
-      )
-    ),
-    size = 2.5
+  geom_point(
+    size = 2.2
   ) +
-  scale_fill_gradient(
-  low = "#F1F8F6",
-  high = "#009E73",
-  limits = c(0.65, 1.00),
-  guide = "none"
+  scale_colour_manual(
+    values = METHOD_COLS,
+    drop = FALSE
+  ) +
+  scale_x_continuous(
+    breaks = c(40, 60, 80)
+  ) +
+  scale_y_continuous(
+    breaks = seq(0.7, 1.0, by = 0.1)
+  ) +
+  coord_cartesian(
+    ylim = c(0.65, 1.00)
   ) +
   labs(
-    x = "Censoring level",
-    y = NULL,
+    x = "Censoring level (%)",
+    y = "Proportion attaining coverage >= 0.88",
     tag = "B"
   ) +
-  theme_fig2 +
-  theme(
-    axis.text.y = element_text(
-      size = 7
-    )
-  )
+  theme_fig2
 
 ## ------------------------------------------------------------
 ## 8. Panel C: ESS versus censoring
